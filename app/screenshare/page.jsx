@@ -34,7 +34,10 @@ export default function ScreenShare() {
     };
 
     useEffect(() => {
-        socket.current = io("http://localhost:3001", { transports: ["websocket"] });
+        socket.current = io({
+            transports: ["websocket"],
+            // Koi URL nahi likhna — automatically current domain pe connect hoga
+        });
 
         socket.current.on("connect", () => console.log("Socket connected:", socket.current.id));
 
