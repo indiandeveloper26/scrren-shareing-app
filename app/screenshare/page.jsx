@@ -34,19 +34,8 @@ export default function ScreenShare() {
     };
 
     useEffect(() => {
-        // socket.current = io("", { transports: ["websocket"] });
-        // socket.current = io({  // ← bas itna — production mein automatic URL lega
-        //     path: "/socket.io",
-        //     transports: ["websocket"],
-        // });
+        socket.current = io("http://localhost:3001", { transports: ["websocket"] });
 
-        socket.current = io({
-            path: "/api/socket",
-            addTrailingSlash: false,
-            transports: ["websocket"],    // pehle websocket try karega
-            fallback: ["polling"],        // agar fail ho to polling pe jayega
-            reconnectionAttempts: 5,
-        });
         socket.current.on("connect", () => console.log("Socket connected:", socket.current.id));
 
         let storedUser = localStorage.getItem("user");
