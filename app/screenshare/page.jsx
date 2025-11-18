@@ -198,7 +198,7 @@ export default function ScreenShare() {
                                             className="absolute top-3 right-3 bg-red-600 text-white text-xs px-3 py-1 rounded-full cursor-pointer shadow-lg"
                                             onClick={(e) => { e.stopPropagation(); setFullscreenVideo(null); }}
                                         >
-                                            Close
+                                            Closee
                                         </div>
                                     )}
                                 </div>
