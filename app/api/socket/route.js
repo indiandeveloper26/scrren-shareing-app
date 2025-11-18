@@ -1,58 +1,66 @@
-// // app/api/socket/route.js   ← yeh path bana de
+// app/api/socket/route.js
 
-// import { Server } from "socket.io";
+import { Server } from "socket.io";
 
-// let io;
+let io;
 
-// export const GET = async () => {
-//   if (io) return new Response("Running", { status: 200 });
+export const GET = async () => {
+  if (io) return new Response("Running", { status: 200 });
 
-//   io = new Server({
-//     path: "/api/socket",
-//     addTrailingSlash: false,
-//     cors: { origin: "*" },
-//   });
+  // Vercel ke liye special trick
+  const dummyServer = {
+    callbacks: {},
+    on: (event, callback) => (dummyServer.callbacks[event] = callback),
+    listen: () => dummyServer,
+    close: () => { },
+  };
 
-//   const users = {};
+  io = new Server(dummyServer, {
+    path: "/api/socket",
+    addTrailingSlash: false,
+    cors: { origin: "*" },
+  });
 
-//   io.on("connection", (socket) => {
-//     console.log("User connected:", socket.id);
+  const users = {};
 
-//     socket.on("register", (name) => {
-//       users[socket.id] = name;
-//       console.log("Registered:", name);
-//       io.emit("users", users);
-//     });
+  io.on("connection", (socket) => {
+    console.log("User connected:", socket.id);
 
-//     socket.on("call-user", ({ targetId, offer }) => {
-//       io.to(targetId).emit("offer", { from: socket.id, offer });
-//     });
+    socket.on("register", (name) => {
+      users[socket.id] = name;
+      io.emit("users", users);
+      console.log(name + " registered");
+    });
 
-//     socket.on("answer-user", ({ targetId, answer }) => {
-//       io.to(targetId).emit("answer", { answer });
-//     });
+    socket.on("call-user", ({ targetId, offer }) => {
+      io.to(targetId).emit("offer", { from: socket.id, offer });
+    });
 
-//     socket.on("candidate", ({ targetId, candidate }) => {
-//       io.to(targetId).emit("candidate", candidate);
-//     });
+    socket.on("answer-user", ({ targetId, answer }) => {
+      io.to(targetId).emit("answer", { answer });
+    });
 
-//     socket.on("chat-message", ({ to, text, from }) => {
-//       const targetId = Object.keys(users).find(id => users[id] === to);
-//       const msg = { text, from, to, timestamp: Date.now() };
-//       if (targetId) io.to(targetId).emit("chat-message", msg);
-//       socket.emit("chat-message", msg);
-//     });
+    socket.on("candidate", ({ targetId, candidate }) => {
+      io.to(targetId).emit("candidate", candidate);
+    });
 
-//     socket.on("disconnect", () => {
-//       delete users[socket.id];
-//       io.emit("users", users);
-//       console.log("User disconnected:", socket.id);
-//     });
-//   });
+    socket.on("chat-message", ({ to, text, from }) => {
+      const targetId = Object.keys(users).find(id => users[id] === to);
+      const msg = { text, from, to, timestamp: Date.now() };
+      if (targetId) io.to(targetId).emit("chat-message", msg);
+      socket.emit("chat-message", msg);
+    });
 
-//   global.io = io;
+    socket.on("disconnect", () => {
+      delete users[socket.id];
+      io.emit("users", users);
+      console.log("User disconnected:", socket.id);
+    });
+  });
 
-//   return new Response("Socket server started", { status: 200 });
-// };
+  global.io = io;
 
-// export const dynamic = "force-dynamic";
+  return new Response("Socket server started", { status: 200 });
+};
+
+export const dynamic = "force-dynamic";
