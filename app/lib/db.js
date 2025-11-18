@@ -1,19 +1,19 @@
 import mongoose from "mongoose";
 
-let isConnected = false; // to track connection
+let isConnected = false;
 
 export const connectDB = async () => {
     if (isConnected) return;
 
     try {
-        await mongoose.connect(process.env.MONGO_URI, {
+        await mongoose.connect('mongodb+srv://akgaud079:sahilmummy@cluster0.pcpf2.mongodb.net/', {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });
         isConnected = true;
-        console.log("MongoDB Connected");
+        console.log("✅ MongoDB Connected");
     } catch (err) {
-        console.error("MongoDB connection error:", err);
+        console.error("❌ MongoDB connection error:", err);
         throw err;
     }
 };

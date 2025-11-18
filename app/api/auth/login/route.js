@@ -1,29 +1,27 @@
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
-
 import { connectDB } from "@/app/lib/db";
 import User from "@/app/models/user";
-import { createToken } from "@/app/lib/auth";
 
 export async function POST(req) {
     try {
         await connectDB();
-
         const { email, password } = await req.json();
-        const user = await User.findOne({ email });
 
-        if (!user)
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
+        const user = await User.findOne({ email });
+        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
         const valid = await bcrypt.compare(password, user.password);
-        if (!valid)
-            return NextResponse.json({ error: "Invalid credentials" }, { status: 400 });
+        if (!valid) return NextResponse.json({ error: "Invalid credentials" }, { status: 400 });
 
-        const token = createToken(user); // JWT creation
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
-        const res = NextResponse.json({ user, token });
+        const res = NextResponse.json({
+            message: "Login successful",
+            user: { id: user._id, name: user.name, email: user.email },
+        });
 
-        // Optional: HTTP-only cookie
         res.cookies.set("auth_token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
@@ -32,8 +30,9 @@ export async function POST(req) {
             path: "/",
         });
 
-        return res;
+        console.log('dta', res)
 
+        return res;
     } catch (err) {
         console.error("Login Error:", err);
         return NextResponse.json({ error: "Server Error" }, { status: 500 });

@@ -67,29 +67,23 @@
 
 
 
-
-
-
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
-import User from "@/app/models/user";
 import { connectDB } from "@/app/lib/db";
-
+import User from "@/app/models/user";
 
 export async function POST(req) {
     try {
         await connectDB();
         const { name, email, password } = await req.json();
 
-        if (!name || !email || !password) {
+        if (!name || !email || !password)
             return NextResponse.json({ error: "All fields required" }, { status: 400 });
-        }
 
         const exist = await User.findOne({ email });
-        if (exist) {
+        if (exist)
             return NextResponse.json({ error: "Email already exists" }, { status: 400 });
-        }
 
         const hash = await bcrypt.hash(password, 10);
 
@@ -104,7 +98,7 @@ export async function POST(req) {
 
         res.cookies.set("auth_token", token, {
             httpOnly: true,
-            secure: true,
+            secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
             maxAge: 7 * 24 * 60 * 60,
             path: "/",
@@ -112,7 +106,7 @@ export async function POST(req) {
 
         return res;
     } catch (err) {
-        console.log("Signup Error:", err);
+        console.error("Signup Error:", err);
         return NextResponse.json({ error: "Server Error" }, { status: 500 });
     }
 }
