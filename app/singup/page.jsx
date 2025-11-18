@@ -25,16 +25,15 @@ export default function Signup() {
         setuserdta(data)
         setLoading(false);
 
+        localStorage.setItem("user", JSON.stringify(data.user));
+
         if (data.error) {
             setError(data.error);
             return;
         }
         window.location.href = "/screenshare";
 
-        if (data.token) {
-            localStorage.setItem("token", data.token);
-            window.location.href = "/dashboard";
-        }
+
     };
 
     return (
