@@ -1,53 +1,58 @@
-// app/api/socket/io/route.js   ← yeh path hona chahiye
+// // app/api/socket/route.js   ← yeh path bana de
 
-import { Server } from "socket.io";
+// import { Server } from "socket.io";
 
-let io;
+// let io;
 
-export const GET = async (request) => {
-  if (!io) {
-    // Next.js ke real server ko access karne ka sahi tarika
-    const { server: httpServer } = await import("node:http");
+// export const GET = async () => {
+//   if (io) return new Response("Running", { status: 200 });
 
-    // Global variable mein store karo taaki baar-baar na bane
-    if (!global.ioServer) {
-      const server = httpServer.createServer();
-      io = new Server(server, {
-        path: "/api/socket/io",
-        addTrailingSlash: false,
-        cors: { origin: "*" },
-      });
+//   io = new Server({
+//     path: "/api/socket",
+//     addTrailingSlash: false,
+//     cors: { origin: "*" },
+//   });
 
-      const users = {};
+//   const users = {};
 
-      io.on("connection", (socket) => {
-        console.log("User connected:", socket.id);
+//   io.on("connection", (socket) => {
+//     console.log("User connected:", socket.id);
 
-        socket.on("register", (name) => {
-          users[socket.id] = name;
-          console.log(name, "registered");
-          io.emit("users", users);
-        });
+//     socket.on("register", (name) => {
+//       users[socket.id] = name;
+//       console.log("Registered:", name);
+//       io.emit("users", users);
+//     });
 
-        socket.on("call-user", (data) => socket.to(data.targetId).emit("offer", { from: socket.id, offer: data.offer }));
-        socket.on("answer-user", (data) => socket.to(data.targetId).emit("answer", { answer: data.answer }));
-        socket.on("candidate", (data) => socket.to(data.targetId).emit("candidate", data.candidate));
+//     socket.on("call-user", ({ targetId, offer }) => {
+//       io.to(targetId).emit("offer", { from: socket.id, offer });
+//     });
 
-        socket.on("disconnect", () => {
-          delete users[socket.id];
-          io.emit("users", users);
-          console.log("User disconnected");
-        });
-      });
+//     socket.on("answer-user", ({ targetId, answer }) => {
+//       io.to(targetId).emit("answer", { answer });
+//     });
 
-      global.ioServer = server;
-      global.io = io;
-    }
+//     socket.on("candidate", ({ targetId, candidate }) => {
+//       io.to(targetId).emit("candidate", candidate);
+//     });
 
-    io = global.io;
-  }
+//     socket.on("chat-message", ({ to, text, from }) => {
+//       const targetId = Object.keys(users).find(id => users[id] === to);
+//       const msg = { text, from, to, timestamp: Date.now() };
+//       if (targetId) io.to(targetId).emit("chat-message", msg);
+//       socket.emit("chat-message", msg);
+//     });
 
-  return new Response("Socket.io ready", { status: 200 });
-};
+//     socket.on("disconnect", () => {
+//       delete users[socket.id];
+//       io.emit("users", users);
+//       console.log("User disconnected:", socket.id);
+//     });
+//   });
 
-export const dynamic = "force-dynamic";
+//   global.io = io;
+
+//   return new Response("Socket server started", { status: 200 });
+// };
+
+// export const dynamic = "force-dynamic";

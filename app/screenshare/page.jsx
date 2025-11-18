@@ -34,10 +34,7 @@ export default function ScreenShare() {
     };
 
     useEffect(() => {
-        socket.current = io({
-            transports: ["websocket"],
-            // Koi URL nahi likhna — automatically current domain pe connect hoga
-        });
+        socket.current = io("http://localhost:3001", { transports: ["websocket"] });
 
         socket.current.on("connect", () => console.log("Socket connected:", socket.current.id));
 
@@ -198,7 +195,7 @@ export default function ScreenShare() {
                                             className="absolute top-3 right-3 bg-red-600 text-white text-xs px-3 py-1 rounded-full cursor-pointer shadow-lg"
                                             onClick={(e) => { e.stopPropagation(); setFullscreenVideo(null); }}
                                         >
-                                            Closee
+                                            Close
                                         </div>
                                     )}
                                 </div>
