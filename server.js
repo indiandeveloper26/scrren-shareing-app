@@ -125,7 +125,7 @@ app.prepare().then(() => {
         });
     });
 
-    const PORT = process.env.PORT || 3001;
+    const PORT = process.env.PORT || 3000;
     server.listen(PORT, () => {
         console.log(`App + Socket.io running on http://localhost:${PORT}`);
         console.log(`Socket path: http://localhost:${PORT}/socket.io`);
