@@ -7,7 +7,7 @@ export function middleware(req) {
     console.log('tokne', token)
     if (!token) {
         const loginUrl = req.nextUrl.clone();
-        loginUrl.pathname = "/login";
+        loginUrl.pathname = "/";
         return NextResponse.redirect(loginUrl);
     }
 
@@ -19,6 +19,7 @@ export function middleware(req) {
 export const config = {
     matcher: [
         "/dashboard/:path*",   // dashboard protected
-        "/profile/:path*",     // profile protected
+        "/profile/:path*",
+        "/screenshare/:path*"    // profile protected
     ],
 };

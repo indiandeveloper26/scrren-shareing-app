@@ -2,20 +2,21 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
 import { connectDB } from "@/app/lib/db";
-import User from "@/app/models/user";
+import Usernext from "@/app/models/user";
+
 
 export async function POST(req) {
     try {
         await connectDB();
         const { email, password } = await req.json();
 
-        const user = await User.findOne({ email });
+        const user = await Usernext.findOne({ email });
         if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) return NextResponse.json({ error: "Invalid credentials" }, { status: 400 });
 
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+        const token = jwt.sign({ id: user._id }, "sahil12345", { expiresIn: "7d" });
 
         const res = NextResponse.json({
             message: "Login successful",

@@ -4,6 +4,6 @@ export default function page() {
 
     console.log('.env', process.env.MONGO_URL)
     return (
-        <div>page</div>
+        <div>page{process.env.MONGO_URL}</div>
     )
 }

@@ -71,7 +71,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
 import { connectDB } from "@/app/lib/db";
-import User from "@/app/models/user";
+import Usernext from "@/app/models/user";
 
 export async function POST(req) {
     try {
@@ -81,15 +81,15 @@ export async function POST(req) {
         if (!name || !email || !password)
             return NextResponse.json({ error: "All fields required" }, { status: 400 });
 
-        const exist = await User.findOne({ email });
+        const exist = await Usernext.findOne({ email });
         if (exist)
             return NextResponse.json({ error: "Email already exists" }, { status: 400 });
 
         const hash = await bcrypt.hash(password, 10);
 
-        const user = await User.create({ name, email, password: hash });
+        const user = await Usernext.create({ name, email, password: hash });
 
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+        const token = jwt.sign({ id: user._id }, 'sahil12345', { expiresIn: "7d" });
 
         const res = NextResponse.json({
             message: "Signup successful",
@@ -107,6 +107,6 @@ export async function POST(req) {
         return res;
     } catch (err) {
         console.error("Signup Error:", err);
-        return NextResponse.json({ error: "Server Error" }, { status: 500 });
+        return NextResponse.json({ error: "Server Error" }, { status: 500 }, { 'error': err });
     }
 }

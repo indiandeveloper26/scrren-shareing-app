@@ -6,7 +6,7 @@ export const connectDB = async () => {
     if (isConnected) return;
 
     try {
-        await mongoose.connect('mongodb+srv://akgaud079:sahilmummy@cluster0.pcpf2.mongodb.net/', {
+        await mongoose.connect(process.env.MONGO_URL, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });

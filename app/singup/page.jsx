@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 export default function Signup() {
@@ -28,6 +29,7 @@ export default function Signup() {
             setError(data.error);
             return;
         }
+        window.location.href = "/screenshare";
 
         if (data.token) {
             localStorage.setItem("token", data.token);
@@ -80,9 +82,9 @@ export default function Signup() {
 
                 <p className="text-center text-gray-300 mt-4">
                     Already have an account?{" "}
-                    <a href="/" className="text-blue-400 hover:underline">
-                        Login
-                    </a>
+                    <Link href="/" className="text-blue-400 hover:underline">
+                        Sign up
+                    </Link>
                 </p>
             </div>
         </div>

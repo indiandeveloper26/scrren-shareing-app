@@ -20,7 +20,7 @@ app.prepare().then(() => {
     let users = {};
 
     io.on("connection", (socket) => {
-        console.log("User connected:", socket.id);
+        console.log("User connectedg:", socket.id);
 
         socket.on("register", (name) => {
             users[socket.id] = name;

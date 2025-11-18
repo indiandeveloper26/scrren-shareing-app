@@ -20,10 +20,11 @@ app.prepare().then(() => {
     let users = {};
 
     io.on("connection", (socket) => {
-        console.log("User connected:", socket.id);
+        console.log("User connectedt:", socket.id);
 
         socket.on("register", (name) => {
             users[socket.id] = name;
+            console.log('userconnect-', name)
             io.emit("users", users);
         });
 
@@ -38,7 +39,16 @@ app.prepare().then(() => {
         socket.on("candidate", ({ targetId, candidate }) => {
             io.to(targetId).emit("candidate", candidate);
         });
+        socket.on("chat-message", ({ to, text, from }) => {
+            const targetSocket = Object.keys(users).find(key => users[key] === to);
+            const msg = { text, from, to, timestamp: Date.now() };
+            console.log('dta', to)
+            // Send to recipient only
+            if (targetSocket) io.to(targetSocket).emit("chat-message", msg);
 
+            // Send to sender so UI updates instantly
+            socket.emit("chat-message", msg);
+        });
         socket.on("disconnect", () => {
             delete users[socket.id];
             io.emit("users", users);
