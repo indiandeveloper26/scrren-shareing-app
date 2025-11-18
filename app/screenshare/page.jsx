@@ -34,8 +34,11 @@ export default function ScreenShare() {
     };
 
     useEffect(() => {
-        socket.current = io("https://scrren-shareing-app-u5b4.vercel.app", { transports: ["websocket"] });
-
+        // socket.current = io("https://scrren-shareing-app-u5b4.vercel.app", { transports: ["websocket"] });
+        socket.current = io({  // ← bas itna — production mein automatic URL lega
+            path: "/socket.io",
+            transports: ["websocket"],
+        });
         socket.current.on("connect", () => console.log("Socket connected:", socket.current.id));
 
         let storedUser = localStorage.getItem("user");
