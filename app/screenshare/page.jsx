@@ -1,58 +1,52 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { io } from "socket.io-client";
+import { useRouter } from "next/navigation";
+import { useUser } from "../context/context";
+
 
 export default function ScreenShare() {
-    const socket = useRef(null);
+    const { name, users, messages, socket, sendMessage } = useUser();
+    const router = useRouter();
+
     const pc = useRef(null);
     const localVideo = useRef(null);
     const remoteVideo = useRef(null);
     const localStreamRef = useRef(null);
 
-    const [users, setUsers] = useState({});
-    const [name, setName] = useState("");
     const [sharing, setSharing] = useState(false);
     const [fullscreenVideo, setFullscreenVideo] = useState(null);
     const [targetId, setTargetId] = useState(null);
+    const [input, setInput] = useState("");
 
-    const generateName = () => {
-        const adjectives = ["Fast", "Smart", "Cool", "Crazy", "Happy"];
-        const nouns = ["Tiger", "Lion", "Eagle", "Shark", "Wolf"];
-        return (
-            adjectives[Math.floor(Math.random() * adjectives.length)] +
-            nouns[Math.floor(Math.random() * nouns.length)] +
-            Math.floor(Math.random() * 100)
-        );
-    };
+    const messagesEndRef = useRef(null);
+    const scrollToBottom = () =>
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
-    const logout = async () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        await fetch("/api/auth/logout", { method: "POST" });
-        window.location.href = "/";
+    useEffect(scrollToBottom, [messages]);
+
+    // WebRTC
+    const ensurePeerConnection = async (forTargetId) => {
+        if (pc.current) return;
+        pc.current = new RTCPeerConnection({
+            iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+        });
+
+        pc.current.ontrack = (event) => {
+            if (remoteVideo.current) remoteVideo.current.srcObject = event.streams[0];
+        };
+
+        pc.current.onicecandidate = (e) => {
+            if (!e.candidate) return;
+            socket.current.emit("candidate", {
+                targetId: forTargetId || targetId,
+                candidate: e.candidate,
+            });
+        };
     };
 
     useEffect(() => {
-        socket.current = io("http://localhost:3001", { transports: ["websocket"] });
-
-        socket.current.on("connect", () => console.log("Socket connected:", socket.current.id));
-
-        let storedUser = localStorage.getItem("user");
-        if (!storedUser) {
-            const autoName = generateName();
-            localStorage.setItem("user", JSON.stringify({ name: autoName }));
-            setName(autoName);
-            socket.current.emit("register", autoName);
-        } else {
-            const userObj = JSON.parse(storedUser);
-            setName(userObj.name);
-            socket.current.emit("register", userObj.name);
-        }
-
-        socket.current.on("users", (list) => setUsers(list || {}));
-
-        socket.current.on("offer", async ({ from, offer }) => {
+        socket.current?.on("offer", async ({ from, offer }) => {
             setTargetId(from);
             await ensurePeerConnection(from);
             await pc.current.setRemoteDescription(offer);
@@ -61,32 +55,16 @@ export default function ScreenShare() {
             socket.current.emit("answer-user", { targetId: from, answer });
         });
 
-        socket.current.on("answer", async ({ answer }) => {
+        socket.current?.on("answer", async ({ answer }) => {
             if (!pc.current) return;
             await pc.current.setRemoteDescription(answer);
         });
 
-        socket.current.on("candidate", async (candidate) => {
+        socket.current?.on("candidate", async (candidate) => {
             if (!pc.current || !candidate) return;
             await pc.current.addIceCandidate(candidate);
         });
-
-        return () => socket.current.disconnect();
-    }, []);
-
-    const ensurePeerConnection = async (forTargetId) => {
-        if (pc.current) return;
-        pc.current = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
-
-        pc.current.ontrack = (event) => {
-            if (remoteVideo.current) remoteVideo.current.srcObject = event.streams[0];
-        };
-
-        pc.current.onicecandidate = (e) => {
-            if (!e.candidate) return;
-            socket.current.emit("candidate", { targetId: forTargetId || targetId, candidate: e.candidate });
-        };
-    };
+    }, [socket.current]);
 
     const startShare = async (id) => {
         setTargetId(id);
@@ -110,7 +88,7 @@ export default function ScreenShare() {
         localStreamRef.current = null;
 
         if (pc.current) {
-            pc.current.getSenders()?.forEach((s) => { try { pc.current.removeTrack(s); } catch { } });
+            pc.current.getSenders()?.forEach((s) => pc.current.removeTrack(s));
             pc.current.close();
             pc.current = null;
         }
@@ -123,43 +101,52 @@ export default function ScreenShare() {
         setFullscreenVideo(null);
     };
 
+    const handleKey = (e) => {
+        if (e.key === "Enter") sendMsg();
+    };
+
+    const sendMsg = () => {
+        if (!input.trim()) return;
+        sendMessage({ text: input, from: name, to: targetId || "all" });
+        setInput("");
+    };
+
     return (
-        <div className="relative min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 font-sans p-6">
-            {/* Logout Button */}
-            <button
-                onClick={logout}
-                className="absolute top-6 right-6 px-5 py-2 bg-red-600 text-white font-bold rounded-xl shadow-lg hover:bg-red-700 transition-all"
-            >
-                Logout
-            </button>
+        <div className="min-h-screen p-4 md:p-8 bg-gradient-to-r from-purple-300 via-pink-200 to-yellow-200 animate-gradient-x">
+            <h1 className="text-4xl font-bold text-center mb-6">Screen Sharing & Chat</h1>
 
-            <h1 className="text-4xl font-bold text-center mb-10 text-gray-800">Private Screen Sharing</h1>
-
-            <div className="text-center mb-8 text-gray-700 font-medium">
-                Logged in as <span className="font-bold">{name}</span> | Socket ID: <span className="font-bold">{socket.current?.id}</span>
+            <div className="text-center mb-6">
+                Logged in as <span className="font-bold">{name}</span> | Socket ID:{" "}
+                <span className="font-bold">{socket.current?.id}</span>
             </div>
 
             <div className="flex flex-col md:flex-row gap-6">
                 {/* Users List */}
-                {/* Users List */}
-                <div className="md:w-1/3 bg-white shadow-xl rounded-2xl p-6">
-                    <h3 className="text-xl font-semibold border-b pb-3 mb-5 text-gray-800">Online Users</h3>
+                <div className="md:w-1/3 bg-white p-4 rounded-2xl shadow-lg">
+                    <h3 className="font-semibold text-lg mb-4 border-b pb-2">Online Users</h3>
+
                     {Object.entries(users).map(([id, uname]) => {
                         if (socket.current?.id === id) return null;
                         return (
-                            <div key={id} className="flex justify-between items-center p-3 mb-3 rounded-xl hover:bg-gray-100 transition">
-                                <span className="font-medium">{uname}</span>
+                            <div
+                                key={id}
+                                className="flex justify-between items-center mb-2 p-2 rounded-xl hover:bg-indigo-50 cursor-pointer"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <span className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></span>
+                                    <span>{uname}</span>
+                                </div>
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => startShare(id)}
                                         disabled={sharing}
-                                        className="px-4 py-1 rounded-full bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition"
+                                        className="px-3 py-1 rounded-full bg-green-500 text-white text-sm hover:bg-green-600 transition"
                                     >
-                                        screen-Share
+                                        Share
                                     </button>
                                     <button
-                                        onClick={() => window.location.href = `/screenshare/${uname}`} // redirect to chatroom with user ID
-                                        className="px-4 py-1 rounded-full bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 transition"
+                                        onClick={() => router.push(`/screenshare/${uname}`)}
+                                        className="px-3 py-1 rounded-full bg-blue-500 text-white text-sm hover:bg-blue-600 transition"
                                     >
                                         Chat
                                     </button>
@@ -167,33 +154,38 @@ export default function ScreenShare() {
                             </div>
                         );
                     })}
-                    {Object.keys(users).length === 0 && <div className="text-gray-400 mt-2 text-sm">No other users online</div>}
+                    {Object.keys(users).length === 0 && (
+                        <div className="text-gray-400 mt-2 text-sm">No other users online</div>
+                    )}
                 </div>
 
-
-                {/* Video Preview */}
-                <div className="md:w-2/3 bg-white shadow-xl rounded-2xl p-6 flex flex-col gap-5">
-                    <h3 className="text-xl font-semibold border-b pb-3 mb-4 text-gray-800">Preview</h3>
+                {/* Video & Chat */}
+                <div className="md:w-2/3 bg-white p-4 rounded-2xl shadow-lg flex flex-col gap-4">
+                    <h3 className="font-semibold text-lg border-b pb-2">Preview</h3>
                     <div className="flex flex-col md:flex-row gap-4">
                         {["local", "remote"].map((v) => {
-                            const isFullscreen = fullscreenVideo === v;
+                            const isFull = fullscreenVideo === v;
                             return (
                                 <div
                                     key={v}
-                                    className={`flex-1 relative cursor-pointer`}
-                                    onClick={() => setFullscreenVideo(isFullscreen ? null : v)}
+                                    className="flex-1 relative cursor-pointer"
+                                    onClick={() => setFullscreenVideo(isFull ? null : v)}
                                 >
                                     <div className="text-sm text-gray-500 mb-1 capitalize">{v}</div>
                                     <video
                                         ref={v === "local" ? localVideo : remoteVideo}
                                         autoPlay
                                         playsInline
-                                        className={`w-full rounded-2xl border border-gray-300 shadow-md ${isFullscreen ? "fixed top-0 left-0 w-screen h-screen z-50" : ""}`}
+                                        className={`w-full rounded-2xl border shadow-md ${isFull ? "fixed top-0 left-0 w-screen h-screen z-50" : ""
+                                            }`}
                                     />
-                                    {isFullscreen && (
+                                    {isFull && (
                                         <div
                                             className="absolute top-3 right-3 bg-red-600 text-white text-xs px-3 py-1 rounded-full cursor-pointer shadow-lg"
-                                            onClick={(e) => { e.stopPropagation(); setFullscreenVideo(null); }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setFullscreenVideo(null);
+                                            }}
                                         >
                                             Close
                                         </div>
@@ -206,11 +198,44 @@ export default function ScreenShare() {
                     {sharing && (
                         <button
                             onClick={stopShare}
-                            className="mt-6 px-6 py-3 rounded-2xl bg-red-500 text-white font-bold hover:bg-red-600 shadow-lg transition-all"
+                            className="mt-4 px-6 py-2 rounded-2xl bg-red-500 text-white hover:bg-red-600 font-bold shadow-md"
                         >
                             Stop Sharing
                         </button>
                     )}
+
+                    {/* Chat Section */}
+                    <div className="flex-1 flex flex-col border-t pt-2 mt-2">
+                        <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-2 bg-gray-50 rounded-lg">
+                            {messages.map((m, i) => (
+                                <div
+                                    key={i}
+                                    className={`p-2 rounded-2xl max-w-[70%] break-words ${m.from === name ? "bg-blue-500 text-white self-end" : "bg-gray-300 text-gray-800 self-start"
+                                        }`}
+                                >
+                                    <div className="text-xs font-semibold mb-1">{m.from}</div>
+                                    <div>{m.text}</div>
+                                </div>
+                            ))}
+                            <div ref={messagesEndRef}></div>
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                            <input
+                                type="text"
+                                placeholder="Type a message..."
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={handleKey}
+                                className="flex-1 px-4 py-2 rounded-2xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            />
+                            <button
+                                onClick={sendMsg}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition"
+                            >
+                                Send
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

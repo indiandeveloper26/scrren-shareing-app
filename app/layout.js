@@ -1,5 +1,8 @@
 
+import { cookies } from "next/headers";
+import Navbar from "./component/layout";
 import "./globals.css";
+import { UserProvider } from "./context/context";
 
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
@@ -17,12 +20,23 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
+
+  const cookieStore = cookies();
+  const token = cookieStore.get("auth_token")?.value;
   return (
     <html lang="en">
       <body
 
       >
-        {children}
+
+        {token ? <Navbar /> : null}
+
+        <UserProvider>
+
+
+          {children}
+        </UserProvider>
+
       </body>
     </html>
   );
