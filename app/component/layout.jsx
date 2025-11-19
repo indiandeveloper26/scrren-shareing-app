@@ -3,9 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 
-export default function Navbar({ logout }) {
+export default function Navbar() {
     const [active, setActive] = useState("home");
-    const logoutt = async () => {
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    // Logout function (works on both desktop & mobile)
+    const logout = async () => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         await fetch("/api/auth/logout", { method: "POST" });
@@ -19,8 +22,6 @@ export default function Navbar({ logout }) {
         { name: "Settings", href: "/settings" },
     ];
 
-
-
     return (
         <nav className="fixed w-full top-0 left-0 z-50 bg-white/30 backdrop-blur-md shadow-md">
             <div className="max-w-7xl mx-auto flex justify-between items-center px-6 py-3">
@@ -29,7 +30,7 @@ export default function Navbar({ logout }) {
                     ShareMate
                 </div>
 
-                {/* Links */}
+                {/* Desktop Links */}
                 <ul className="hidden md:flex gap-6 items-center">
                     {links.map((link) => (
                         <li
@@ -44,10 +45,9 @@ export default function Navbar({ logout }) {
                         </li>
                     ))}
 
-                    {/* Logout Button in Navbar */}
                     <li>
                         <button
-                            onClick={logoutt}
+                            onClick={logout}
                             className="px-4 py-2 bg-red-600 text-white font-bold rounded-xl shadow-lg hover:bg-red-700 transition-all"
                         >
                             Logout
@@ -56,9 +56,59 @@ export default function Navbar({ logout }) {
                 </ul>
 
                 {/* Mobile Menu Button */}
-                <MobileMenu links={links} active={active} setActive={setActive} logout={logout} />
+                <button
+                    onClick={() => setMenuOpen(!menuOpen)}
+                    className="md:hidden text-gray-700 focus:outline-none"
+                >
+                    <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d={
+                                menuOpen
+                                    ? "M6 18L18 6M6 6l12 12"
+                                    : "M4 6h16M4 12h16M4 18h16"
+                            }
+                        />
+                    </svg>
+                </button>
             </div>
 
+            {/* Mobile Menu */}
+            {menuOpen && (
+                <ul className="md:hidden absolute top-full left-0 w-full bg-white shadow-lg flex flex-col items-center gap-4 py-4 animate-fadeIn">
+                    {links.map((link) => (
+                        <li
+                            key={link.name}
+                            onClick={() => {
+                                setActive(link.name.toLowerCase());
+                                setMenuOpen(false);
+                            }}
+                            className={`cursor-pointer text-gray-700 font-medium hover:text-indigo-600 transition-all ${active === link.name.toLowerCase() ? "text-indigo-600" : ""
+                                }`}
+                        >
+                            <Link href={link.href}>{link.name}</Link>
+                        </li>
+                    ))}
+
+                    <li>
+                        <button
+                            onClick={logout}
+                            className="px-4 py-2 bg-red-600 text-white font-bold rounded-xl shadow-lg hover:bg-red-700 transition-all"
+                        >
+                            Logout
+                        </button>
+                    </li>
+                </ul>
+            )}
+
+            {/* Animations */}
             <style jsx>{`
         @keyframes slideIn {
           0% {
@@ -72,63 +122,7 @@ export default function Navbar({ logout }) {
           animation: slideIn 0.3s ease forwards;
           transform-origin: left;
         }
-      `}</style>
-        </nav>
-    );
-}
 
-// Mobile menu component
-function MobileMenu({ links, active, setActive, logout }) {
-    const [open, setOpen] = useState(false);
-
-    return (
-        <div className="md:hidden">
-            <button
-                onClick={() => setOpen(!open)}
-                className="text-gray-700 focus:outline-none"
-            >
-                <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d={open ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
-                    />
-                </svg>
-            </button>
-
-            {open && (
-                <ul className="absolute top-full left-0 w-full bg-white shadow-lg flex flex-col items-center gap-4 py-4 animate-fadeIn">
-                    {links.map((link) => (
-                        <li
-                            key={link.name}
-                            onClick={() => {
-                                setActive(link.name.toLowerCase());
-                                setOpen(false);
-                            }}
-                            className={`cursor-pointer text-gray-700 font-medium hover:text-indigo-600 transition-all ${active === link.name.toLowerCase() ? "text-indigo-600" : ""
-                                }`}
-                        >
-                            <Link href={link.href}>{link.name}</Link>
-                        </li>
-                    ))}
-                    <li>
-                        <button
-                            onClick={logout}
-                            className="px-4 py-2 bg-red-600 text-white font-bold rounded-xl shadow-lg hover:bg-red-700 transition-all"
-                        >
-                            Logout
-                        </button>
-                    </li>
-                </ul>
-            )}
-
-            <style jsx>{`
         @keyframes fadeIn {
           0% {
             opacity: 0;
@@ -143,6 +137,6 @@ function MobileMenu({ links, active, setActive, logout }) {
           animation: fadeIn 0.3s ease forwards;
         }
       `}</style>
-        </div>
+        </nav>
     );
 }

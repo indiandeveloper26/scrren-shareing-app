@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "../context/context";
 
-
 export default function ScreenShare() {
     const { name, users, messages, socket, sendMessage } = useUser();
     const router = useRouter();
@@ -25,7 +24,10 @@ export default function ScreenShare() {
 
     useEffect(scrollToBottom, [messages]);
 
-    // WebRTC
+    // Detect if mobile
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    // WebRTC Setup
     const ensurePeerConnection = async (forTargetId) => {
         if (pc.current) return;
         pc.current = new RTCPeerConnection({
@@ -45,8 +47,11 @@ export default function ScreenShare() {
         };
     };
 
+    // Socket Event Listeners
     useEffect(() => {
-        socket.current?.on("offer", async ({ from, offer }) => {
+        if (!socket.current) return;
+
+        socket.current.on("offer", async ({ from, offer }) => {
             setTargetId(from);
             await ensurePeerConnection(from);
             await pc.current.setRemoteDescription(offer);
@@ -55,22 +60,39 @@ export default function ScreenShare() {
             socket.current.emit("answer-user", { targetId: from, answer });
         });
 
-        socket.current?.on("answer", async ({ answer }) => {
+        socket.current.on("answer", async ({ answer }) => {
             if (!pc.current) return;
             await pc.current.setRemoteDescription(answer);
         });
 
-        socket.current?.on("candidate", async (candidate) => {
+        socket.current.on("candidate", async (candidate) => {
             if (!pc.current || !candidate) return;
             await pc.current.addIceCandidate(candidate);
         });
+
+        return () => {
+            socket.current.off("offer");
+            socket.current.off("answer");
+            socket.current.off("candidate");
+        };
     }, [socket.current]);
 
+    // Start Sharing (Screen on PC, Camera on Mobile)
     const startShare = async (id) => {
         setTargetId(id);
         await ensurePeerConnection(id);
 
-        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        let stream;
+        try {
+            stream = await (isMobile
+                ? navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                : navigator.mediaDevices.getDisplayMedia({ video: true, audio: false }));
+        } catch (err) {
+            console.error("Media Error:", err);
+            alert("Could not access screen/camera");
+            return;
+        }
+
         localStreamRef.current = stream;
         localVideo.current.srcObject = stream;
 
@@ -83,6 +105,7 @@ export default function ScreenShare() {
         setSharing(true);
     };
 
+    // Stop Sharing
     const stopShare = () => {
         localStreamRef.current?.getTracks().forEach((t) => t.stop());
         localStreamRef.current = null;
@@ -112,7 +135,7 @@ export default function ScreenShare() {
     };
 
     return (
-        <div className="min-h-screen p-4 md:p-8 bg-gradient-to-r from-purple-300 via-pink-200 to-yellow-200 animate-gradient-x">
+        <div className="min-h-screen mt-12 p-4 md:p-8 bg-gradient-to-r from-purple-300 via-pink-200 to-yellow-200 animate-gradient-x">
             <h1 className="text-4xl font-bold text-center mb-6">Screen Sharing & Chat</h1>
 
             <div className="text-center mb-6">
@@ -142,7 +165,7 @@ export default function ScreenShare() {
                                         disabled={sharing}
                                         className="px-3 py-1 rounded-full bg-green-500 text-white text-sm hover:bg-green-600 transition"
                                     >
-                                        Share
+                                        {isMobile ? "Use Camera" : "Share"}
                                     </button>
                                     <button
                                         onClick={() => router.push(`/screenshare/${uname}`)}
@@ -176,6 +199,7 @@ export default function ScreenShare() {
                                         ref={v === "local" ? localVideo : remoteVideo}
                                         autoPlay
                                         playsInline
+                                        muted={v === "local"} // important for mobile autoplay
                                         className={`w-full rounded-2xl border shadow-md ${isFull ? "fixed top-0 left-0 w-screen h-screen z-50" : ""
                                             }`}
                                     />
@@ -210,7 +234,9 @@ export default function ScreenShare() {
                             {messages.map((m, i) => (
                                 <div
                                     key={i}
-                                    className={`p-2 rounded-2xl max-w-[70%] break-words ${m.from === name ? "bg-blue-500 text-white self-end" : "bg-gray-300 text-gray-800 self-start"
+                                    className={`p-2 rounded-2xl max-w-[70%] break-words ${m.from === name
+                                        ? "bg-blue-500 text-white self-end"
+                                        : "bg-gray-300 text-gray-800 self-start"
                                         }`}
                                 >
                                     <div className="text-xs font-semibold mb-1">{m.from}</div>
