@@ -10,6 +10,8 @@ export async function POST(req) {
         await connectDB();
         const { email, password } = await req.json();
 
+
+
         const user = await Usernext.findOne({ email });
         if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
@@ -17,7 +19,7 @@ export async function POST(req) {
         if (!valid) return NextResponse.json({ error: "Invalid credentials" }, { status: 400 });
 
         const token = jwt.sign({ id: user._id }, "sahil12345", { expiresIn: "7d" });
-
+        console.log('dta',)
         const res = NextResponse.json({
             message: "Login successful",
             user: { id: user._id, name: user.name, email: user.email },
@@ -31,7 +33,6 @@ export async function POST(req) {
             path: "/",
         });
 
-        console.log('dta', res)
 
         return res;
     } catch (err) {

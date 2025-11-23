@@ -2,7 +2,7 @@
 import { cookies } from "next/headers";
 import Navbar from "./component/layout";
 import "./globals.css";
-import { UserProvider } from "./context/context";
+import { SocketProvider, UserProvider } from "./context/context";
 
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
@@ -31,11 +31,11 @@ export default function RootLayout({ children }) {
 
         {token ? <Navbar /> : null}
 
-        <UserProvider>
+        <SocketProvider>
 
 
           {children}
-        </UserProvider>
+        </SocketProvider>
 
       </body>
     </html>
