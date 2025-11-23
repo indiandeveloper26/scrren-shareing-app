@@ -11,6 +11,7 @@ export default function ScreenShare() {
     const pc = useRef(null);
     const localVideo = useRef(null);
     const remoteVideo = useRef(null);
+    console.log('name', name)
 
     // Setup Peer Connection
     const setupPC = (id) => {
@@ -73,9 +74,18 @@ export default function ScreenShare() {
         setupPC(id);
 
         try {
-            const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-            localVideo.current.srcObject = stream;
+            let stream;
 
+            // Detect if getDisplayMedia is supported
+            if (navigator.mediaDevices.getDisplayMedia) {
+                stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+            } else {
+                // Fallback for mobile: use camera instead
+                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                alert("Screen sharing not supported on this device. Using camera instead.");
+            }
+
+            localVideo.current.srcObject = stream;
             stream.getTracks().forEach((track) => pc.current.addTrack(track, stream));
 
             const offer = await pc.current.createOffer();
@@ -84,10 +94,11 @@ export default function ScreenShare() {
             socket.current.emit("call-user", { targetId: id, offer });
             setSharing(true);
         } catch (err) {
-            alert("Screen share permission denied!");
+            alert("Permission denied or error accessing media!");
             console.error(err);
         }
     };
+
 
     const stopShare = () => {
         localVideo.current?.srcObject?.getTracks().forEach((t) => t.stop());
@@ -101,7 +112,7 @@ export default function ScreenShare() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 p-6 text-white">
+        <div className="  mt-12 min-h-screen bg-gray-900 p-6 text-white">
             {!name ? (
                 <div className="flex flex-col items-center justify-center h-screen space-y-4">
                     <input
