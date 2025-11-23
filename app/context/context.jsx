@@ -10,7 +10,7 @@ export const SocketProvider = ({ children }) => {
     const [name, setName] = useState("");
 
     useEffect(() => {
-        socket.current = io("http://localhost:3001");
+        socket.current = io("https://scrren-backend.onrender.com");
         socket.current.on("users", (u) => setUsers(u));
         return () => socket.current.disconnect();
     }, []);
